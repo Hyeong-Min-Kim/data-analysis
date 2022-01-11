@@ -43,42 +43,50 @@
 
 -	Query)
 
-
-/* 팀레벨별 */
-
-declare @start_date datetime = '2019-11-19'
-declare @end_date datetime = '2019-11-25'
-
-select	floor(aa.team_lv/10) 't_10lv',   
-bb.server, 
-	count(distinct bb.accountid) 'pu', 
-	sum(bb.sales) 'sales'
+```select		aa.server, 
+				count(distinct aa.accountid) 'pu', 
+				count(distinct case when aa.sales >= 1 and aa.sales < 33000 then aa.accountid else null end) '1~33,000 원',
+				count(distinct case when aa.sales >= 33000 and aa.sales < 110000 then aa.accountid else null end) '33,000~110,000 원',
+				count(distinct case when aa.sales >= 110000 and aa.sales < 330000 then aa.accountid else null end) '110,000 ~ 330,000 원',
+				count(distinct case when aa.sales >= 330000 and aa.sales < 550000 then aa.accountid else null end) '330,000 ~ 550,000 원',
+				count(distinct case when aa.sales >= 550000 then aa.accountid else null end) '550,000 원 이상~'
 from		
 (
-select	server, accountid, min(lv) 'team_lv'   ---최초 접속 레벨 기준
-from	dbo.dau2 with (nolock)
+select		server, accountid, sum(price) 'sales' 
+from		dbo.inappbilling a with (nolock)
+join			dbo.cm_billing b with (nolock) on a.clientproductid=b.clientproductid 
+and 
+				cast(a.time  as date) >= cast(b.created_Date as date) and cast(a.time as date) < cast(b.deleted_Date as date) 
 where
-	date between @start_date and @end_date      ---- 기간
-group by
-	server, accountid
-) as aa,
-(
-select	server, accountid, sum(price) 'sales' 
-from	dbo.inappbilling a with (nolock)
-join	dbo.cm_billing b with (nolock) on a.clientproductid=b.clientproductid 
-and	cast(a.time  as date) >= cast(b.created_Date as date) 
-and 	cast(a.time as date) < cast(b.deleted_Date as date) 
-where
-	cast(time as date) between '2019-11-19' and '2019-11-25'      ---  기간별
+				cast(time as date) between '2020-02-11' and '2020-02-17'      ---  기간별
 group by 
-	server, accountid
-) as bb
-where
-	aa.server= bb.server and aa.accountid=bb.accountid
+				server, accountid
+) as aa 
 group by
-	floor(aa.team_lv/10), bb.server
+				aa.server
 
 
+select		aa.server, 
+				sum(aa.sales) 'pu', 
+				sum( case when aa.sales >= 1 and aa.sales < 33000 then aa.sales else null end) '1~33,000 원',
+				sum( case when aa.sales >= 33000 and aa.sales < 110000 then  aa.sales  else null end) '33,000~110,000 원',
+				sum( case when aa.sales >= 110000 and aa.sales < 330000 then  aa.sales  else null end) '110,000 ~ 330,000 원',
+				sum( case when aa.sales >= 330000 and aa.sales < 550000 then  aa.sales  else null end) '330,000 ~ 550,000 원',
+				sum( case when aa.sales >= 550000 then  aa.sales  else null end) '550,000 원 이상~'
+from		
+(
+select		server, accountid, sum(price) 'sales' 
+from		dbo.inappbilling a with (nolock)
+join			dbo.cm_billing b with (nolock) on a.clientproductid=b.clientproductid 
+and 
+				cast(a.time  as date) >= cast(b.created_Date as date) and cast(a.time as date) < cast(b.deleted_Date as date) 
+where
+				cast(time as date) between '2019-11-19' and '2019-11-25'      ---  기간별
+group by 
+				server, accountid
+) as aa 
+group by
+				aa.server```
 
 
 
